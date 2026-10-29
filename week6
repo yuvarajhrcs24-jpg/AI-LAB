@@ -1,0 +1,170 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyNDr/MjgU42oXtI6qqQD4S2",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/yuvarajhrcs24-jpg/AI-LAB/blob/main/week6\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "lZm7LKxsSGnA",
+        "outputId": "d2fff960-3190-4b9a-bd60-8eae3fbc4855"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "=================================================================\n",
+            "P     Q     R     Q->P      P->~Q     Q v R     KB status\n",
+            "=================================================================\n",
+            "True  True  True  True      False     True      False\n",
+            "True  True  False True      False     True      False\n",
+            "True  False True  True      True      True      TRUE (Model)\n",
+            "True  False False True      True      False     False\n",
+            "False True  True  False     True      True      False\n",
+            "False True  False False     True      True      False\n",
+            "False False True  True      True      True      TRUE (Model)\n",
+            "False False False True      True      False     False\n",
+            "=================================================================\n",
+            "Models where KB is True: [{'P': True, 'Q': False, 'R': True}, {'P': False, 'Q': False, 'R': True}]\n",
+            "\n",
+            "--- Entailment Results ---\n",
+            "ii) Does KB entail R?       -> True\n",
+            "iii) Does KB entail R -> P? -> False\n",
+            "iv) Does KB entail Q -> R?  -> True\n"
+          ]
+        }
+      ],
+      "source": [
+        "import itertools\n",
+        "\n",
+        "# --- 1. Definition of Logical Connectives ---\n",
+        "def IMPLIES(a, b):\n",
+        "    return not a or b\n",
+        "\n",
+        "# --- 2. Evaluation Helper (PL-TRUE?) ---\n",
+        "def pl_true(sentence, model):\n",
+        "    \"\"\"\n",
+        "    Evaluates a logical sentence given a specific model (dictionary mapping symbol -> bool).\n",
+        "    Sentences are expressed as lambda functions taking the model as an argument.\n",
+        "    \"\"\"\n",
+        "    return sentence(model)\n",
+        "\n",
+        "# --- 3. TT-ENTAILS? Algorithm ---\n",
+        "def tt_entails(KB, alpha):\n",
+        "    \"\"\"\n",
+        "    Returns True if KB entails alpha, and False otherwise.\n",
+        "    KB is a list of sentences (functions).\n",
+        "    alpha is a query sentence (function).\n",
+        "    \"\"\"\n",
+        "    # Extract all unique symbols used in KB and alpha\n",
+        "    # (For this problem, our propositional symbols are P, Q, and R)\n",
+        "    symbols = ['P', 'Q', 'R']\n",
+        "    return tt_check_all(KB, alpha, symbols, {})\n",
+        "\n",
+        "def tt_check_all(KB, alpha, symbols, model):\n",
+        "    if not symbols:  # If symbols is EMPTY?\n",
+        "        # Check if the KB is true under the current model assignment\n",
+        "        kb_true = all(pl_true(sentence, model) for sentence in KB)\n",
+        "        if kb_true:\n",
+        "            return pl_true(alpha, model)\n",
+        "        else:\n",
+        "            return True  # When KB is false, always return true\n",
+        "    else:\n",
+        "        P = symbols[0]\n",
+        "        rest = symbols[1:]\n",
+        "\n",
+        "        # Recursive check for both True and False assignments of the symbol P\n",
+        "        model_true = model.copy()\n",
+        "        model_true[P] = True\n",
+        "\n",
+        "        model_false = model.copy()\n",
+        "        model_false[P] = False\n",
+        "\n",
+        "        return (tt_check_all(KB, alpha, rest, model_true) and\n",
+        "                tt_check_all(KB, alpha, rest, model_false))\n",
+        "\n",
+        "# --- 4. Defining the Problem Data ---\n",
+        "# Sentences in Knowledge Base (KB)\n",
+        "# Q -> P\n",
+        "# P -> ~Q\n",
+        "# Q v R\n",
+        "kb_sentences = [\n",
+        "    lambda m: IMPLIES(m['Q'], m['P']),\n",
+        "    lambda m: IMPLIES(m['P'], not m['Q']),\n",
+        "    lambda m: m['Q'] or m['R']\n",
+        "]\n",
+        "\n",
+        "# Queries\n",
+        "query_ii  = lambda m: m['R']                      # R\n",
+        "query_iii = lambda m: IMPLIES(m['R'], m['P'])      # R -> P\n",
+        "query_iv  = lambda m: IMPLIES(m['Q'], m['R'])      # Q -> R\n",
+        "\n",
+        "# --- 5. Executing Part (i): Construct and Display Truth Table ---\n",
+        "print(\"=\" * 65)\n",
+        "print(f\"{'P':<6}{'Q':<6}{'R':<6}{'Q->P':<10}{'P->~Q':<10}{'Q v R':<10}{'KB status'}\")\n",
+        "print(\"=\" * 65)\n",
+        "\n",
+        "symbols = ['P', 'Q', 'R']\n",
+        "valid_models = []\n",
+        "\n",
+        "# Generate all possible 2^3 = 8 truth assignments\n",
+        "for combination in itertools.product([True, False], repeat=3):\n",
+        "    model = dict(zip(symbols, combination))\n",
+        "\n",
+        "    # Calculate truth value of individual sentences\n",
+        "    s1 = kb_sentences[0](model)\n",
+        "    s2 = kb_sentences[1](model)\n",
+        "    s3 = kb_sentences[2](model)\n",
+        "\n",
+        "    # KB is true only if ALL sentences in it are true\n",
+        "    kb_is_true = s1 and s2 and s3\n",
+        "\n",
+        "    if kb_is_true:\n",
+        "        valid_models.append(model)\n",
+        "        status = \"TRUE (Model)\"\n",
+        "    else:\n",
+        "        status = \"False\"\n",
+        "\n",
+        "    print(f\"{str(model['P']):<6}{str(model['Q']):<6}{str(model['R']):<6}\"\n",
+        "          f\"{str(s1):<10}{str(s2):<10}{str(s3):<10}{status}\")\n",
+        "\n",
+        "print(\"=\" * 65)\n",
+        "print(f\"Models where KB is True: {valid_models}\\n\")\n",
+        "\n",
+        "# --- 6. Executing Parts (ii), (iii), and (iv) using TT-ENTAILS? ---\n",
+        "print(\"--- Entailment Results ---\")\n",
+        "print(f\"ii) Does KB entail R?       -> {tt_entails(kb_sentences, query_ii)}\")\n",
+        "print(f\"iii) Does KB entail R -> P? -> {tt_entails(kb_sentences, query_iii)}\")\n",
+        "print(f\"iv) Does KB entail Q -> R?  -> {tt_entails(kb_sentences, query_iv)}\")"
+      ]
+    }
+  ]
+}
