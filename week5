@@ -1,0 +1,172 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyOAa5lAJ1IsaW2DRspMGPro",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/yuvarajhrcs24-jpg/AI-LAB/blob/main/week5\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 6,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "HZbXyes_Ntrj",
+        "outputId": "8cc9a26b-93d1-4c52-f3db-a325f9706aca"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Enter the number of queens (N): 4\n",
+            "Enter initial state as N row numbers (0 to N-1).\n",
+            "Enter initial state: 0 1 2 3\n",
+            "\n",
+            "Initial state: [0, 1, 2, 3]\n",
+            "Initial cost: 6\n",
+            "\n",
+            "Final state: [2, 0, 3, 1]\n",
+            "Final cost: 0\n",
+            "Iterations: 135\n",
+            "Solution found without conflicts!\n",
+            "\n",
+            "Chessboard:\n",
+            ". Q . . \n",
+            ". . . Q \n",
+            "Q . . . \n",
+            ". . Q . \n"
+          ]
+        }
+      ],
+      "source": [
+        "\n",
+        "import random\n",
+        "import math\n",
+        "\n",
+        "# Cost function: count attacking pairs of queens\n",
+        "def cost(state):\n",
+        "    n = len(state)\n",
+        "    conflicts = 0\n",
+        "\n",
+        "    for i in range(n):\n",
+        "        for j in range(i + 1, n):\n",
+        "            if state[i] == state[j]:  # Same row\n",
+        "                conflicts += 1\n",
+        "            elif abs(state[i] - state[j]) == abs(i - j):\n",
+        "                conflicts += 1  # Same diagonal\n",
+        "\n",
+        "    return conflicts\n",
+        "\n",
+        "\n",
+        "def simulated_annealing(initial_state):\n",
+        "    n = len(initial_state)\n",
+        "    current = initial_state.copy()\n",
+        "    current_cost = cost(current)\n",
+        "\n",
+        "    best = current.copy()\n",
+        "    best_cost = current_cost\n",
+        "\n",
+        "    temperature = 10.0\n",
+        "    cooling_rate = 0.9995\n",
+        "    max_iterations = 100000\n",
+        "\n",
+        "    for step in range(1, max_iterations + 1):\n",
+        "\n",
+        "        if best_cost == 0:\n",
+        "            break\n",
+        "\n",
+        "        # Generate a neighbor by moving one queen\n",
+        "        neighbor = current.copy()\n",
+        "        col = random.randrange(n)\n",
+        "        new_row = random.randrange(n - 1)\n",
+        "        if new_row >= neighbor[col]:\n",
+        "            new_row += 1\n",
+        "        neighbor[col] = new_row\n",
+        "\n",
+        "        neighbor_cost = cost(neighbor)\n",
+        "        delta = neighbor_cost - current_cost\n",
+        "\n",
+        "        # Accept better states or sometimes worse states\n",
+        "        if delta < 0 or random.random() < math.exp(\n",
+        "            -delta / temperature\n",
+        "        ):\n",
+        "            current = neighbor\n",
+        "            current_cost = neighbor_cost\n",
+        "\n",
+        "        # Store the best state found\n",
+        "        if current_cost < best_cost:\n",
+        "            best = current.copy()\n",
+        "            best_cost = current_cost\n",
+        "\n",
+        "        temperature *= cooling_rate\n",
+        "\n",
+        "    return best, best_cost, step\n",
+        "\n",
+        "\n",
+        "# Input\n",
+        "n = int(input(\"Enter the number of queens (N): \"))\n",
+        "\n",
+        "print(\"Enter initial state as N row numbers (0 to N-1).\")\n",
+        "initial_state = list(map(\n",
+        "    int, input(\"Enter initial state: \").split()\n",
+        "))\n",
+        "\n",
+        "if n < 1 or len(initial_state) != n:\n",
+        "    print(\"Error: Enter exactly N row numbers and N must be positive.\")\n",
+        "elif any(row < 0 or row >= n for row in initial_state):\n",
+        "    print(\"Error: Each row number must be between 0 and N-1.\")\n",
+        "else:\n",
+        "    initial_cost = cost(initial_state)\n",
+        "\n",
+        "    print(\"\\nInitial state:\", initial_state)\n",
+        "    print(\"Initial cost:\", initial_cost)\n",
+        "\n",
+        "    solution, final_cost, steps = simulated_annealing(\n",
+        "        initial_state\n",
+        "    )\n",
+        "\n",
+        "    print(\"\\nFinal state:\", solution)\n",
+        "    print(\"Final cost:\", final_cost)\n",
+        "    print(\"Iterations:\", steps)\n",
+        "\n",
+        "    if final_cost == 0:\n",
+        "        print(\"Solution found without conflicts!\")\n",
+        "\n",
+        "        print(\"\\nChessboard:\")\n",
+        "        for row in range(n):\n",
+        "            for col in range(n):\n",
+        "                if solution[col] == row:\n",
+        "                    print(\"Q\", end=\" \")\n",
+        "                else:\n",
+        "                    print(\".\", end=\" \")\n",
+        "            print()\n",
+        "    else:\n",
+        "        print(\"No conflict-free solution found in this run.\")\n",
+        "        print(\"Run the program again to try another search.\")\n"
+      ]
+    }
+  ]
+}
